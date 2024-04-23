@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,8 +9,6 @@ namespace Labb2Trådar.Models
 {
     internal class Events
     {
-        static ThreadLocal<int> _current = new ThreadLocal<int>();
-
 
         public static List<Car> GetCars()
         {
@@ -22,83 +21,104 @@ namespace Labb2Trådar.Models
 
         public static void Competition()
         {
-            Thread car1 = new Thread(() => CompStart("Bil Ett", 120))
+            List<Car> cars = GetCars();
+            //Tråd som kallar på det första objektet i car-listan
+            Thread car1 = new Thread(() => CompStart(cars[0]))
             {
                 Name = "Bil Ett"
 
             };
-            Thread car2 = new Thread(() => CompStart("Bil Två", 120))
+            Thread car2 = new Thread(() => CompStart(cars[1]))
             {
                 Name = "Bil Två"
             };
-            while (true)
-            {
+
 
                 car1.Start();
                 car2.Start();
 
-
-            }
-
         }
         public static void Randomiser()
         {
+            List<Car> cars = GetCars();
             Random rand = new Random();
+            Car currentCar = cars[rand.Next(cars.Count)];
+
             int random150 = rand.Next(1, 51); // Ger ett nummer mellan 1-50 (1/50 risk)
             if (random150 == 19)
             {
-                Gas();
+                Gas(currentCar);
             }
             else if (random150 == 17 || random150 == 18) // (6/50 risk)
             {
-                PoppedTire();
+                PoppedTire(currentCar);
             } 
-            else if (random150 >= 11 || random150 <= 16) //(5/50 risk) 
+            else if (random150 >= 11 && random150 <= 16) //(5/50 risk) 
             {
-                BirdWindshield();
+                BirdWindshield(currentCar);
             }
-            else if (random150 >= 1 || random150 <= 10) // (10/50 risk)
+            else if (random150 >= 1 && random150 <= 10) // (10/50 risk)
             {
-                MotorProblem();
+                
+                MotorProblem(currentCar);
             }
             else
             {
-                Console.WriteLine("");
+                Console.WriteLine($"{currentCar.CarName} drove on without encountering any problems.");
             }
         }
-        public static void CompStart(string carName, int carSpeed)
+        public static void CompStart(Car car)
         {
             int totalLength = 10000;
-            Console.WriteLine($"Car with name {Thread.CurrentThread.Name} started racing!");
-            for (int i = 0; i < totalLength;)
-                {
-                    i++;
-                    for (i = )
+            int currentKm = 0;
+            Console.WriteLine($"Car with name {car.CarName} started racing!");
 
-                }
+            Timer Events = new Timer(state =>
+            {
+                Randomiser();
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+
+            Timer Tracker = new Timer(state =>
+            {
+                Console.WriteLine($"{car.CarName} has driven {currentKm} km.");
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(10));
+
+            for (int i = 0; i < totalLength; i++)
+            {
+                currentKm++;
+                Thread.Sleep(10);
+
+            }
+            Console.WriteLine($"{car.CarName} has reached the finish line!");
+
+            //
+            Events.Dispose();
+
             
         }
-        public static void Gas()
+        public static void Gas(Car car)
         {
 
-            Console.WriteLine($"Gas refill event occurred for {Thread.CurrentThread.Name}!\n{Thread.CurrentThread.Name} stops for 30 sek.");
+            Console.WriteLine($"Gas refill event occurred!\n{car.CarName} stops for 30 sek.");
             Thread.Sleep(3000);
 
         }
-        public static void PoppedTire() 
+        public static void PoppedTire(Car car) 
         {
-            Console.WriteLine($"Popped tired event occured!\n{Thread.CurrentThread.Name} stops for 20 sek.");
+            Console.WriteLine($"Popped tired event occured!\n{car.CarName} stops for 20 sek.");
             Thread.Sleep(2000);
         }
-        public static void BirdWindshield()
+        public static void BirdWindshield(Car car)
         {
-            Console.WriteLine($"Birds on the windshield event occured!\n{Thread.CurrentThread.Name} stops for 10 sek.");
+            Console.WriteLine($"Birds on the windshield event occured!\n{car.CarName} stops for 10 sek.");
             Thread.Sleep(1000);
 
         }
-        public static void MotorProblem()
+        public static void MotorProblem(Car car)
         {
-            Console.WriteLine("Motor problem event occured!\n{car} Speed per hour decreses from {car.speed} to ");
+
+            Console.WriteLine($"Motor problem event occured!\n{car.CarName} Speed per hour decreses from {car.SpeedPerHour} to {(car.SpeedPerHour - 1)} ");
+            car.SpeedPerHour--;
             
         }
     }

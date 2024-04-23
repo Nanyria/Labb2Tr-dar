@@ -6,7 +6,8 @@ namespace Labb2Trådar
     {
         static void Main(string[] args)
         {
-
+            Events.Competition();
+            Console.ReadKey();
         }
     }
 }
