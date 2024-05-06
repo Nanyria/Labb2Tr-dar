@@ -10,70 +10,82 @@ namespace Labb2Trådar.Models
 {
     internal class Events
     {
-        public static Mutex mutex = new Mutex();
-        private static readonly object carDistance = new object;
-        private static bool eventOccurred = false;
-        private static bool raceIsOn = false;
-        private static readonly List<string> possibleEvents = new List<string>
-        {
-            "Gas refill",
-            "Flat tire",
-            "Bird on windshield",
-            "Engine trouble"
-        };
-
+        private static Car firstFinisher;
+        private static bool raceCompleted;
 
         public static List<Car> GetCars()
         {
             return new List<Car>
             {
-                new Car { CarID = 101, CarName = "BilEtt", SpeedPerHour = 12000},
-                new Car { CarID = 102, CarName = "BilTvå", SpeedPerHour = 12000}
+
+                new Car(101, "BilEtt", 12000, 0, false, false),
+                new Car(102, "BilTvå", 12000, 0, false, false)
             };
         }
 
+        private static void ListenForUserInput(List<Car> cars)
+        {
+            try
+            {
+                while (true)
+                {
+                    string input = Console.ReadLine();
+                    if (input == "status")
+                    {
+                        Console.WriteLine("Current race status:");
+                        foreach (var car in cars)
+                        {
+                            Console.WriteLine($"Car {car.CarName}: Distance: {car.CurrentDistance / 1000} km, Speed: {car.SpeedPerHour} km/h");
+                        }
+                    }
+                }
+            }
+            catch (ThreadInterruptedException)
+            {
+                // Do nothing, the thread was interrupted intentionally
+            }
+        }
 
         public static void Competition()
         {
 
             List<Car> cars = GetCars();
 
+            // Shared variable to track last event time
+            DateTime lastEventTime = DateTime.MinValue;
+
+
+            // Dictionary to store locks for each car
+            Dictionary<Car, object> carLocks = new Dictionary<Car, object>();
+
+            // Create locks for each car
+            foreach (var car in cars)
+            {
+                carLocks.Add(car, new object());
+            }
             //Start the race for each car
             List<Thread> carThreads = new List<Thread>();
             foreach (var car in cars)
             {
-                Thread carThread = new Thread(() => CompStart(car));
+                Thread carThread = new Thread(() => CompStart(car, ref lastEventTime, carLocks[car]));
                 carThread.Name = car.CarName;
                 carThreads.Add(carThread);
                 carThread.Start();
             }
 
+            // Listen for user input in a separate thread
+            Thread userInputThread = new Thread(() => ListenForUserInput(cars));
+            userInputThread.Start();
 
-            // Thread for generating random events
-
-            //Thread randomEventThread = new Thread(() =>
-            //{
-            //    Thread.Sleep(3000);
-            //    while (true)
-            //    {
-            //        // Generate random events for each car
-            //        foreach (var car in cars)
-            //        {
-            //            mutex.WaitOne();
-            //            car.IsInEvent = true;
-            //            Car.Randomiser(car);
-            //            car.IsInEvent = false;
-            //            mutex.ReleaseMutex();
-            //        }
-            //        Thread.Sleep(30000); // Wait for 30 seconds between events
-            //    }
-            //});
-
-            //randomEventThread.Start();
-
+            // Stop listening for user input
+            userInputThread.Interrupt();
             foreach (var carThread in carThreads)
             {
                 carThread.Join();
+            }
+            if (raceCompleted)
+            {
+                Console.WriteLine($"The race was completed by car: {firstFinisher.CarName}");
             }
 
 
@@ -83,7 +95,7 @@ namespace Labb2Trådar.Models
 
 
 
-        public static void CompStart(Car car)
+        public static void CompStart(Car car, ref DateTime lastEventTime, object carLock)
         {
             List<Car> cars = GetCars();
             int totalDistance = 100000; // 10 km in meters
@@ -96,36 +108,41 @@ namespace Labb2Trådar.Models
             while (car.CurrentDistance < totalDistance)
             {
                 car.IsRacing = true;
-                lock (carDistance)
+                if (!car.IsInEvent && (DateTime.Now - lastEventTime).TotalSeconds >= 30)
                 {
-                    if (car.IsInEvent)
+                    // Trigger an event
+                    lock (carLock)
                     {
-                        if (car.CarID == car.CarID)
-                        {
-                            lock (car)
-                            {
-
-                            }
-                            continue;
-                        }
-
+                        car.IsInEvent = true;
+                        Car.Randomiser(car);
+                        car.IsInEvent = false;
+                        // Update last event time
+                        lastEventTime = DateTime.Now;
                     }
-                    else
-                    {
 
-                        mutex.WaitOne();
-                        // Simulate driving
-                        car.CurrentDistance += car.SpeedPerHour / 360; // Convert speed to m/s
-                        Thread.Sleep(100); // Sleep for 100 milliseconds
-                        mutex.ReleaseMutex();
-
-                    }
                 }
-                
+                if(!car.IsInEvent)
+                {
+
+                    // Simulate driving
+                    car.CurrentDistance += car.SpeedPerHour / 360; // Convert speed to m/s
+                    Thread.Sleep(10); // Sleep for 100 milliseconds
+                }
+
                 if ((DateTime.Now - lastProgressTime).TotalSeconds >= 5)
                 {
                     Console.WriteLine($"Car {car.CarName} has driven {car.CurrentDistance / 1000} km. Speed: {car.SpeedPerHour}");
                     lastProgressTime = DateTime.Now;
+                }
+
+
+            }
+            lock (carLock)
+            {
+                if (!raceCompleted)
+                {
+                    firstFinisher = car;
+                    raceCompleted = true;
                 }
             }
 
@@ -139,8 +156,8 @@ namespace Labb2Trådar.Models
 }
 
 
-                //public static void Randomiser(Car car)
-                //{
+//public static void Randomiser(Car car)
+//{
 
 //    Console.WriteLine($"Randomiser called for car {car.CarName}");
 //    lock (lockObject)

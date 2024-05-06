@@ -43,49 +43,45 @@ namespace Labb2Trådar.Models
 
                 if (random150 == 19)
                 {
-                    mutex.WaitOne();
+
                     Console.WriteLine($"Gas refill event occurred!\n{car.CarName} stops for 30 sek.");
-                    Thread.Sleep(3000);
-                    mutex.ReleaseMutex();
-                    car.IsInEvent = false;
+                    Thread.Sleep(30000);
 
 
                 }
                 else if (random150 == 17 || random150 == 18)
                 {
-                    mutex.WaitOne();
                     Console.WriteLine($"Popped tired event occured!\n{car.CarName} stops for 20 sek.");
-                    Thread.Sleep(2000);
-                    mutex.ReleaseMutex();
-                    car.IsInEvent = false;
+                    Thread.Sleep(20000);
+
 
 
                 }
                 else if (random150 >= 11 && random150 <= 16)
                 {
-                    mutex.WaitOne();
+
                     Console.WriteLine($"Birds on the windshield event occured!\n{car.CarName} stops for 10 sek.");
-                    Thread.Sleep(1000);
-                    mutex.ReleaseMutex();
-                    car.IsInEvent = false;
+                    Thread.Sleep(10000);
+
 
 
                 }
                 else if (random150 >= 1 && random150 <= 10)
                 {
-                    mutex.WaitOne();
+
                     Console.WriteLine($"Engine trouble event occured!\n{car.CarName} Speed per hour decreses from {car.SpeedPerHour} to {(car.SpeedPerHour - 1)} ");
-                    car.SpeedPerHour = car.SpeedPerHour - 1;
-                    mutex.ReleaseMutex();
-                    car.IsInEvent = false;
+                    car.SpeedPerHour -= 1; // Update car speed
+                    Thread.Sleep(1000); // Pause for 5 second
 
 
-                }
+
+            }
                 else
                 {
                     Console.WriteLine($"{car.CarName} kept driving without any problems.");
 
-                }
+
+            }
                 // Set car in an event
             
 
